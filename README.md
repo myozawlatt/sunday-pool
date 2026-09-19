@@ -44,4 +44,4 @@ Without Supabase settings, the public pages show the sample data in `lib/sample-
 
 ## Notes
 
-- **Logo & favicon:** `public/favicon.png` is the source image. After replacing it, run `npm run icons` to regenerate `app/icon.png`, `app/apple-icon.png` and `public/logo.png`.
+- **Logo & favicon:** `public/favicon.png` is the source image. After replacing it, run `npm run icons` to regenerate `app/icon.png`, `app/apple-icon.png`, `public/logo.png` and the install icons (`public/icon-512.png`, `public/icon-maskable.png`).

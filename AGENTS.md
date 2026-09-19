@@ -33,7 +33,7 @@ Next 16 (App Router, Turbopack) · React 19 · Supabase. Deliberately **no** Tai
 - `app/(site)` — public: `/` (latest published day; `?date=YYYY-MM-DD` views another) and `/history`.
 - `app/manage/(panel)` — admin behind `requireAdmin()`: day setup and players.
 - `proxy.ts` — middleware scoped to `/manage/:path*` only; public routes run no middleware.
-- Everything is a server component except `Avatar` and `SiteHeader`.
+- Everything is a server component except `Avatar`, `SiteHeader` and `InstallBanner`.
 
 ## Data model
 
@@ -51,6 +51,7 @@ Winner / draw / protein logic lives in `lib/results.ts`, is spelled out in `READ
 - **Avatars use plain `<img>`**, deliberately, to stay off Vercel's image-optimisation quota.
 - **`manage.css` classes such as `.btn` are not available on public pages** — it is imported by `app/manage/layout.tsx` only.
 - **Clash Grotesk loads from the Fontshare API** rather than being self-hosted: its licence forbids redistributing the font files through a public repo. Don't commit font files.
+- **Installable without a service worker**, deliberately: Chrome only needs `app/manifest.ts` plus its 192/512 icons (`npm run icons`). `InstallBanner` captures `beforeinstallprompt` at module load, since it can fire before hydration.
 - Comment only where the reason isn't evident from the code.
 
 ## Caching and invalidation

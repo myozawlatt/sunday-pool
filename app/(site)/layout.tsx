@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import { InstallBanner } from '@/components/InstallBanner';
 import { SiteFooter, SiteHeader } from '@/components/SiteHeader';
 
 export default function SiteLayout({ children }: { children: ReactNode }) {
@@ -7,6 +8,7 @@ export default function SiteLayout({ children }: { children: ReactNode }) {
       <SiteHeader />
       <main className="container">{children}</main>
       <SiteFooter />
+      <InstallBanner />
     </>
   );
 }

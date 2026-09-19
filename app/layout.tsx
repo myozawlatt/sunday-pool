@@ -14,6 +14,8 @@ const CLASH_GROTESK_CSS = 'https://api.fontshare.com/v2/css?f[]=clash-grotesk@50
 export const metadata: Metadata = {
   title: { default: 'Sunday Pool', template: '%s · Sunday Pool' },
   description: 'Card & Snooker league results',
+  // iOS home-screen name; otherwise it offers the page title (e.g. "History · Sunday Pool")
+  appleWebApp: { title: 'Sunday Pool' },
 };
 
 export const viewport: Viewport = {
