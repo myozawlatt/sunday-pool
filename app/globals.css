@@ -196,7 +196,13 @@ main { flex: 1; padding-block: clamp(28px, 6vw, 64px); }
   text-decoration: none;
   transition: color 0.2s, background-color 0.2s;
 }
-.nav__link:hover { color: var(--ink); background: rgba(43, 31, 28, 0.06); }
+@media (hover: hover) {
+  .nav__link:hover { color: var(--ink); background: rgba(43, 31, 28, 0.06); }
+}
+/* Touch browsers can report a tapped link as :focus-visible; the header persists across navigation, so the ring would stick */
+@media (hover: none) {
+  .nav__link:focus-visible { outline: none; }
+}
 .nav__link.is-active { color: var(--ink); }
 .nav__link.is-active::after {
   content: "";
