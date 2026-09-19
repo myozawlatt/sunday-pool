@@ -33,7 +33,7 @@ Next 16 (App Router, Turbopack) · React 19 · Supabase. Deliberately **no** Tai
 - `app/(site)` — public: `/` (latest published day; `?date=YYYY-MM-DD` views another) and `/history`.
 - `app/manage/(panel)` — admin behind `requireAdmin()`: day setup and players.
 - `proxy.ts` — middleware scoped to `/manage/:path*` only; public routes run no middleware.
-- Everything is a server component except `Avatar`, `SiteHeader` and `InstallBanner`.
+- Everything is a server component except `Avatar`, `SiteHeader`, `InstallBanner` and `DownloadResults`.
 
 ## Data model
 
@@ -52,6 +52,7 @@ Winner / draw / protein logic lives in `lib/results.ts`, is spelled out in `READ
 - **`manage.css` classes such as `.btn` are not available on public pages** — it is imported by `app/manage/layout.tsx` only.
 - **Clash Grotesk loads from the Fontshare API** rather than being self-hosted: its licence forbids redistributing the font files through a public repo. Don't commit font files.
 - **Installable without a service worker**, deliberately: Chrome only needs `app/manifest.ts` plus its 192/512 icons (`npm run icons`). `InstallBanner` captures `beforeinstallprompt` at module load, since it can fire before hydration.
+- **Results image** (`DownloadResults`, the icon in the home hero): `modern-screenshot` copies `[data-capture-root]` (the `.page` wrapper: main + footer, no menus) in the browser and skips anything marked `data-capture-exclude`. The logo + "Sunday Pool" row at the top of the image is drawn onto the canvas afterwards, not captured. It can only embed what it may fetch with CORS: Supabase Storage photos and the Fontshare stylesheet (hence its `crossOrigin`) work; the seeded `i.pravatar.cc` photos fall back to initials.
 - Comment only where the reason isn't evident from the code.
 
 ## Caching and invalidation

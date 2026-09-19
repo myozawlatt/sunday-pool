@@ -26,11 +26,12 @@ export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="en" className={inter.variable}>
       <head>
-        <link rel="preconnect" href="https://api.fontshare.com" />
+        <link rel="preconnect" href="https://api.fontshare.com" crossOrigin="anonymous" />
         <link rel="preconnect" href="https://cdn.fontshare.com" crossOrigin="anonymous" />
         {/* Avatars are plain <img> from Supabase Storage — no crossOrigin, they aren't CORS-fetched. */}
         {SUPABASE_URL && <link rel="preconnect" href={SUPABASE_URL} />}
-        <link rel="stylesheet" href={CLASH_GROTESK_CSS} />
+        {/* CORS so the results-image capture (DownloadResults) can read the @font-face rules and embed the font */}
+        <link rel="stylesheet" href={CLASH_GROTESK_CSS} crossOrigin="anonymous" />
       </head>
       <body>{children}</body>
     </html>

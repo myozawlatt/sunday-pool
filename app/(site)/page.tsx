@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { DownloadResults } from '@/components/DownloadResults';
 import { FixtureGrid } from '@/components/FixtureCard';
 import { ResultBoard } from '@/components/ResultBoard';
 import { formatDate, weekday } from '@/lib/format';
@@ -28,6 +29,7 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
         <p className="eyebrow">Match Day · {weekday(day.date)}</p>
         <h1 className="hero__date">{formatDate(day.date)}</h1>
         <div className="cue" aria-hidden="true" />
+        <DownloadResults date={day.date} label={formatDate(day.date)} />
       </section>
 
       <section className={`spotlight${day.matches.length === 1 ? ' spotlight--single' : ''}`} aria-label="Match results">
@@ -41,7 +43,7 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
           <h2 className="section-title" id="fixtures-title">
             Fixtures
           </h2>
-          <Link className="link-more" href="/history">
+          <Link className="link-more" href="/history" data-capture-exclude>
             View history →
           </Link>
         </div>

@@ -6,8 +6,11 @@ export default function SiteLayout({ children }: { children: ReactNode }) {
   return (
     <>
       <SiteHeader />
-      <main className="container">{children}</main>
-      <SiteFooter />
+      {/* Everything the results image captures (DownloadResults): the page and footer, not the menus */}
+      <div className="container page" data-capture-root>
+        <main>{children}</main>
+        <SiteFooter />
+      </div>
       <InstallBanner />
     </>
   );

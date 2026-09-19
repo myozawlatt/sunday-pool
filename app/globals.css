@@ -81,6 +81,9 @@ a { color: inherit; }
 
 main { flex: 1; padding-block: clamp(28px, 6vw, 64px); }
 
+/* Public pages: main + footer, also the area the results image captures */
+.page { flex: 1; display: flex; flex-direction: column; }
+
 .eyebrow {
   margin: 0 0 8px;
   font-size: 0.78rem;
@@ -218,6 +221,48 @@ main { flex: 1; padding-block: clamp(28px, 6vw, 64px); }
 /* ---- Home: hero --------------------------------------------------------- */
 
 .hero, .page-head { text-align: center; }
+.hero { position: relative; }
+
+/* Download-as-image icon button, top-right of the hero (DownloadResults) */
+.hero__download {
+  position: absolute;
+  top: -6px;
+  right: 0;
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  background: var(--surface);
+  -webkit-backdrop-filter: var(--glass-blur);
+  backdrop-filter: var(--glass-blur);
+  box-shadow: var(--shadow);
+  color: var(--ink-muted);
+  cursor: pointer;
+  transition: color 0.2s, border-color 0.2s;
+}
+.hero__download svg {
+  width: 20px;
+  height: 20px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+@media (hover: hover) {
+  .hero__download:hover { color: var(--accent); border-color: var(--accent); }
+}
+.hero__download:disabled { cursor: progress; }
+.hero__download.is-busy svg { animation: spin 0.8s linear infinite; }
+.hero__download.is-ready,
+.hero__download.is-error { color: var(--accent); border-color: var(--accent); }
+@keyframes spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) {
+  .hero__download.is-busy svg { animation-duration: 2.4s; }
+}
 
 .hero__date, .page-title {
   margin: 0;
@@ -917,6 +962,9 @@ main { flex: 1; padding-block: clamp(28px, 6vw, 64px); }
   .pager__step { padding-inline: 10px; }
 
   .install-banner { display: flex; }
+
+  .hero__download { width: 36px; height: 36px; }
+  .hero__download svg { width: 18px; height: 18px; }
 }
 
 /* Small phones */
