@@ -15,71 +15,108 @@ const LABELS: Record<Status, string> = {
 const MAX_PIXELS = 16_000_000;
 
 // Brand row drawn above the captured page, in CSS px; larger than the header's since it heads the image
-type BrandSize = { top: number; logo: number; font: number; gap: number };
-const BRAND: Record<'desktop' | 'phone', BrandSize> = {
-  desktop: { top: 40, logo: 48, font: 28, gap: 12 },
-  phone: { top: 24, logo: 40, font: 24, gap: 10 },
-};
+const BRAND = { top: 40, logo: 48, font: 28, gap: 12 };
+
+// The image always shows the desktop layout, so phones and desktops download the same thing. A page
+// lays itself out for its own window, so the capture renders one off-screen at this width.
+const CAPTURE_WIDTH = 1100;
 
 // Loaded on demand so the capture library stays out of the page bundle
 const loadCapture = () => import('modern-screenshot');
 
-async function captureImage(root: HTMLElement) {
+/**
+ * Loads the current page off-screen at desktop width, so the capture can read its markup and styles.
+ * The scripts are stripped: nothing needs to run, and a second copy of the app would only hydrate over
+ * the very nodes the capture is reading.
+ */
+async function openCaptureFrame() {
+  const response = await fetch(location.href, { credentials: 'same-origin' });
+  if (!response.ok) throw new Error(`Could not load the page to capture (${response.status})`);
+  const html = (await response.text()).replace(/<script\b[\s\S]*?<\/script>/gi, '');
+
+  const frame = document.createElement('iframe');
+  frame.setAttribute('aria-hidden', 'true');
+  frame.setAttribute('tabindex', '-1');
+  frame.style.cssText = `position:fixed;top:0;left:-20000px;border:0;width:${CAPTURE_WIDTH}px;height:800px`;
+  const loaded = new Promise<void>((resolve, reject) => {
+    frame.addEventListener('load', () => resolve(), { once: true });
+    frame.addEventListener('error', () => reject(new Error('Could not load the page to capture')), { once: true });
+  });
+  // srcdoc keeps the frame on this origin, and relative URLs still resolve against this page
+  frame.srcdoc = html;
+  document.body.append(frame);
+  await loaded;
+  const doc = frame.contentDocument;
+  const root = doc?.querySelector<HTMLElement>('[data-capture-root]');
+  if (!doc || !root) {
+    frame.remove();
+    throw new Error('Could not find the page to capture');
+  }
+  // Fit the frame to the page: a scrollbar would take 15px off the layout width and narrow the image
+  frame.style.height = `${doc.documentElement.scrollHeight}px`;
+  await new Promise(requestAnimationFrame);
+  return { frame, root };
+}
+
+async function captureImage() {
   const { domToCanvas } = await loadCapture();
-  // Most avatars are lazy-loaded and may not have been scrolled into view yet
-  const images = Array.from(root.querySelectorAll('img'));
-  images.forEach((img) => (img.loading = 'eager'));
   const logo = new Image();
   logo.src = '/logo.png';
-  await Promise.all([
-    document.fonts.ready,
-    document.fonts.load('700 1em "Clash Grotesk"'),
-    logo.decode(),
-    ...images.map((img) => img.decode().catch(() => {})),
-  ]);
+  const { frame, root } = await openCaptureFrame();
 
-  const tokens = getComputedStyle(document.documentElement);
-  const color = (name: string) => tokens.getPropertyValue(name).trim();
-  const { width, height } = root.getBoundingClientRect();
-  const brand = width > 600 ? BRAND.desktop : BRAND.phone;
-  const band = brand.top + brand.logo;
-  const scale = Math.min(2, Math.sqrt(MAX_PIXELS / (width * (height + band))));
-
-  // The copy renders text a touch wider than the page, so shrink-wrapped labels (the champion's name,
-  // "4 players") would wrap. Mark text that sits on one line here, and keep it on one line in the copy.
-  const singleLine = Array.from(root.querySelectorAll('*')).filter(isSingleLineText);
-  singleLine.forEach((el) => el.setAttribute('data-capture-nowrap', ''));
-  let page: HTMLCanvasElement;
   try {
-    page = await domToCanvas(root, {
+    // Avatars are lazy-loaded, and nothing in an off-screen frame is ever in view
+    const images = Array.from(root.querySelectorAll('img'));
+    images.forEach((img) => (img.loading = 'eager'));
+    await Promise.all([
+      frame.contentDocument!.fonts.ready,
+      document.fonts.load('700 1em "Clash Grotesk"'),
+      logo.decode(),
+      ...images.map((img) => img.decode().catch(() => {})),
+    ]);
+
+    const tokens = getComputedStyle(document.documentElement);
+    const color = (name: string) => tokens.getPropertyValue(name).trim();
+    const { width, height } = root.getBoundingClientRect();
+    const band = BRAND.top + BRAND.logo;
+    const scale = Math.min(2, Math.sqrt(MAX_PIXELS / (width * (height + band))));
+
+    // The copy renders text a touch wider than the page, so shrink-wrapped labels (the champion's name,
+    // "4 players") would wrap. Mark text that sits on one line here, and keep it on one line in the copy.
+    Array.from(root.querySelectorAll('*'))
+      .filter(isSingleLineText)
+      .forEach((el) => el.setAttribute('data-capture-nowrap', ''));
+
+    const page = await domToCanvas(root, {
       scale,
       backgroundColor: color('--bg'),
-      filter: (node) => !(node instanceof Element && node.hasAttribute('data-capture-exclude')),
+      // Nodes live in the frame's realm, where `instanceof Element` from this one is always false
+      filter: (node) => node.nodeType !== Node.ELEMENT_NODE || !(node as Element).hasAttribute('data-capture-exclude'),
       onCloneEachNode: fixClone,
     });
+
+    // The brand row exists only in the image (the page has it in the header), so it is drawn rather than captured
+    const canvas = document.createElement('canvas');
+    canvas.width = page.width;
+    canvas.height = page.height + Math.round(band * scale);
+    const ctx = canvas.getContext('2d')!;
+    ctx.fillStyle = color('--bg');
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.drawImage(page, 0, Math.round(band * scale));
+    drawBrand(ctx, { logo, width, scale, ink: color('--ink'), accent: color('--accent') });
+
+    return await new Promise<Blob>((resolve, reject) =>
+      canvas.toBlob((blob) => (blob ? resolve(blob) : reject(new Error('Canvas export failed'))), 'image/png'),
+    );
   } finally {
-    singleLine.forEach((el) => el.removeAttribute('data-capture-nowrap'));
+    frame.remove();
   }
-
-  // The brand row exists only in the image (the page has it in the header), so it is drawn rather than captured
-  const canvas = document.createElement('canvas');
-  canvas.width = page.width;
-  canvas.height = page.height + Math.round(band * scale);
-  const ctx = canvas.getContext('2d')!;
-  ctx.fillStyle = color('--bg');
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
-  ctx.drawImage(page, 0, Math.round(band * scale));
-  drawBrand(ctx, { logo, size: brand, width, scale, ink: color('--ink'), accent: color('--accent') });
-
-  return new Promise<Blob>((resolve, reject) =>
-    canvas.toBlob((blob) => (blob ? resolve(blob) : reject(new Error('Canvas export failed'))), 'image/png'),
-  );
 }
 
 /** An element with its own text, all of it on one line on the page. */
 function isSingleLineText(el: Element) {
   if (!Array.from(el.childNodes).some((node) => node.nodeType === Node.TEXT_NODE && node.textContent?.trim())) return false;
-  const range = document.createRange();
+  const range = el.ownerDocument.createRange();
   range.selectNodeContents(el);
   const [first, ...rest] = Array.from(range.getClientRects());
   return !!first && rest.every((rect) => rect.top < first.bottom && rect.bottom > first.top);
@@ -97,31 +134,35 @@ function fixClone(node: Node) {
     el.style.removeProperty('max-inline-size');
   }
   if (el.hasAttribute('data-capture-nowrap')) el.style.setProperty('white-space', 'nowrap');
+  // backdrop-filter blurs up to its backdrop root, and the copy is its own root: on phones the glass
+  // cards smeared the page around them. In the image they sit on a flat background, so it does nothing.
+  el.style.removeProperty('backdrop-filter');
+  el.style.removeProperty('-webkit-backdrop-filter');
 }
 
 /** The header's brand (logo, "Sunday Pool" with "Pool" in the accent colour), centred in the top band. */
 function drawBrand(
   ctx: CanvasRenderingContext2D,
-  { logo, size, width, scale, ink, accent }: { logo: HTMLImageElement; size: BrandSize; width: number; scale: number; ink: string; accent: string },
+  { logo, width, scale, ink, accent }: { logo: HTMLImageElement; width: number; scale: number; ink: string; accent: string },
 ) {
   ctx.save();
   ctx.scale(scale, scale);
-  ctx.font = `700 ${size.font}px "Clash Grotesk", Inter, sans-serif`;
+  ctx.font = `700 ${BRAND.font}px "Clash Grotesk", Inter, sans-serif`;
   ctx.textBaseline = 'middle';
   const sunday = ctx.measureText('Sunday').width;
-  const space = ctx.measureText(' ').width + size.font * 0.12; // .brand's word-spacing
+  const space = ctx.measureText(' ').width + BRAND.font * 0.12; // .brand's word-spacing
   const pool = ctx.measureText('Pool').width;
-  const x = (width - (size.logo + size.gap + sunday + space + pool)) / 2;
-  const y = size.top + size.logo / 2;
+  const x = (width - (BRAND.logo + BRAND.gap + sunday + space + pool)) / 2;
+  const y = BRAND.top + BRAND.logo / 2;
 
   // Shadows ignore the canvas transform, so they are scaled by hand (matches .brand__logo's drop-shadow)
   ctx.shadowColor = 'rgba(43, 31, 28, 0.25)';
   ctx.shadowBlur = 4 * scale;
   ctx.shadowOffsetY = 2 * scale;
-  ctx.drawImage(logo, x, size.top, size.logo, size.logo);
+  ctx.drawImage(logo, x, BRAND.top, BRAND.logo, BRAND.logo);
   ctx.shadowColor = 'transparent';
 
-  const textX = x + size.logo + size.gap;
+  const textX = x + BRAND.logo + BRAND.gap;
   ctx.fillStyle = ink;
   ctx.fillText('Sunday', textX, y);
   ctx.fillStyle = accent;
@@ -139,11 +180,10 @@ function download(file: File) {
 }
 
 /**
- * Saves the match day (page + footer, without the menus) as a PNG at the layout it is viewed in.
+ * Saves the match day (page + footer, without the menus) as a PNG, always in the desktop layout.
  * Touch devices get the share sheet (Save Image → Photos, or a chat app); everything else downloads.
  */
 export function DownloadResults({ date, label }: { date: string; label: string }) {
-  const buttonRef = useRef<HTMLButtonElement>(null);
   const pendingFile = useRef<File | null>(null);
   const [status, setStatus] = useState<Status>('idle');
 
@@ -172,12 +212,9 @@ export function DownloadResults({ date, label }: { date: string; label: string }
       pendingFile.current = null;
       return share(file, true);
     }
-    const root = buttonRef.current?.closest<HTMLElement>('[data-capture-root]');
-    if (!root) return;
-
     setStatus('busy');
     try {
-      const blob = await captureImage(root);
+      const blob = await captureImage();
       const file = new File([blob], `sunday-pool-${date}.png`, { type: 'image/png' });
       if (matchMedia('(pointer: coarse)').matches && navigator.canShare?.({ files: [file] })) {
         await share(file, false);
@@ -193,7 +230,6 @@ export function DownloadResults({ date, label }: { date: string; label: string }
 
   return (
     <button
-      ref={buttonRef}
       type="button"
       className={`hero__download is-${status}`}
       data-capture-exclude
