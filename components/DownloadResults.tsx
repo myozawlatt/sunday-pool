@@ -134,8 +134,8 @@ function fixClone(node: Node) {
     el.style.removeProperty('max-inline-size');
   }
   if (el.hasAttribute('data-capture-nowrap')) el.style.setProperty('white-space', 'nowrap');
-  // backdrop-filter blurs up to its backdrop root, and the copy is its own root: on phones the glass
-  // cards smeared the page around them. In the image they sit on a flat background, so it does nothing.
+  // backdrop-filter blurs up to its backdrop root, and the copy is its own root: on phones any glass
+  // surface smeared the page around it. In the image it sits on a flat background, so it does nothing.
   el.style.removeProperty('backdrop-filter');
   el.style.removeProperty('-webkit-backdrop-filter');
 }

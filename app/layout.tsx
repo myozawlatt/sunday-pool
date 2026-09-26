@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from 'next';
 import type { ReactNode } from 'react';
 import { Inter, Noto_Sans_Myanmar } from 'next/font/google';
+import localFont from 'next/font/local';
 import { SUPABASE_URL } from '@/lib/env';
 import './globals.css';
 
@@ -15,6 +16,17 @@ const myanmar = Noto_Sans_Myanmar({
   display: 'swap',
   preload: false,
   adjustFontFallback: false,
+});
+
+// Player quotes: Myanmar PaOh One (SIL Open Font License), self-hosted from public/. Limited to the
+// Myanmar blocks so Latin in a quote stays Inter, and only fetched on pages with Burmese text.
+const quoteFont = localFont({
+  src: '../public/MyanmarPaOhOne.ttf',
+  variable: '--font-quote',
+  display: 'swap',
+  preload: false,
+  adjustFontFallback: false,
+  declarations: [{ prop: 'unicode-range', value: 'U+1000-109F, U+A9E0-A9FF, U+AA60-AA7F' }],
 });
 
 // Headings: Clash Grotesk (Fontshare, ITF Free Font License). Served by the Fontshare API instead of
@@ -34,7 +46,7 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
-    <html lang="en" className={`${inter.variable} ${myanmar.variable}`}>
+    <html lang="en" className={`${inter.variable} ${myanmar.variable} ${quoteFont.variable}`}>
       <head>
         <link rel="preconnect" href="https://api.fontshare.com" crossOrigin="anonymous" />
         <link rel="preconnect" href="https://cdn.fontshare.com" crossOrigin="anonymous" />

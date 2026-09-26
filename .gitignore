@@ -15,3 +15,5 @@ next-env.d.ts
 *.ttf
 *.otf
 *.eot
+# SIL Open Font License, free to redistribute; next/font/local needs it at build time
+!public/MyanmarPaOhOne.ttf

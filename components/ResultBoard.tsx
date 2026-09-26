@@ -31,11 +31,11 @@ export function ResultBoard({ match, players }: { match: Match; players: PlayerM
   const drawIds = result.outcome === 'draw-all' ? result.ranked.map((row) => row.playerId) : result.tiedTopIds;
 
   return (
-    <article className={`spot board ${isWinner ? 'spot--winner' : 'spot--draw'}`}>
-      <header className="board__head">
+    <article className={`spot spot--${match.type} ${isWinner ? 'spot--winner' : 'spot--draw'}`}>
+      <p className="kicker board__kicker">
         <MatchIcon type={match.type} />
-        <span className="board__match">{matchTitle(match.type)}</span>
-      </header>
+        {matchTitle(match.type)}
+      </p>
 
       {isWinner ? (
         <>

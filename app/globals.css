@@ -13,12 +13,13 @@
   --gold: #d4a93b;
   --felt: #0f5132;
 
-  /* white frosted glass cards on the cream page */
+  /* Editorial layout: content sits on the page, split by rules rather than boxed.
+     The frosted glass is kept for small floating controls only. */
   --surface: rgba(255, 255, 255, 0.72);
-  --surface-soft: rgba(255, 255, 255, 0.5);
   --glass-blur: blur(6px) saturate(130%);
   --border: rgba(43, 31, 28, 0.14);
   --border-soft: rgba(43, 31, 28, 0.08);
+  --rule: rgba(43, 31, 28, 0.85);
   --player-border: #2b68ed;
   --radius: 16px;
   --shadow: 0 18px 40px -22px rgba(43, 31, 28, 0.35);
@@ -94,7 +95,29 @@ main { flex: 1; padding-block: clamp(28px, 6vw, 64px); }
   color: var(--accent);
 }
 
+/* Match type label (icon + CARD / SNOOKER) heading a result board */
+.kicker {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+
 .empty-note { margin: 0; text-align: center; color: var(--ink-muted); }
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
 
 /* ---- Brand, balls & icons ------------------------------------------------ */
 
@@ -287,9 +310,10 @@ main { flex: 1; padding-block: clamp(28px, 6vw, 64px); }
 
 /* ---- Home: per-match result boards -------------------------------------- */
 
+/* Boards stand on the page like posters: stacked with a rule between them, side by side
+   with a vertical rule on wider screens (see Responsive) */
 .spotlight {
   display: grid;
-  gap: clamp(20px, 3vw, 32px);
   max-width: 880px;
   margin: clamp(32px, 6vw, 56px) auto clamp(48px, 8vw, 80px);
 }
@@ -297,39 +321,24 @@ main { flex: 1; padding-block: clamp(28px, 6vw, 64px); }
 .spotlight--single { max-width: 424px; }
 
 .spot {
-  position: relative;
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: clamp(28px, 4vw, 40px) 20px;
+  padding-inline: clamp(8px, 4vw, 40px);
   text-align: center;
-  background: var(--surface);
-  -webkit-backdrop-filter: var(--glass-blur);
-  backdrop-filter: var(--glass-blur);
-  border: 1px solid var(--border);
-  border-radius: 24px;
-  box-shadow: var(--shadow);
-  overflow: hidden;
 }
-.spot::before {
-  content: "";
-  position: absolute;
-  top: -40%;
-  left: -20%;
-  right: -20%;
-  height: 80%;
-  background: radial-gradient(closest-side, rgba(241, 0, 42, 0.08), transparent);
-  pointer-events: none;
+.spot + .spot {
+  margin-top: 40px;
+  padding-top: 40px;
+  border-top: 1px solid var(--border);
 }
-.spot > * { position: relative; }
 
-.spot--winner {
-  border-color: rgba(212, 169, 59, 0.55);
-  box-shadow: var(--shadow), 0 0 50px -20px rgba(212, 169, 59, 0.55);
-}
-.spot--winner::before { background: radial-gradient(closest-side, rgba(212, 169, 59, 0.18), transparent); }
+/* bottom room so the crown, which rises above the avatar, clears the kicker */
+.board__kicker { margin-bottom: clamp(36px, 6vw, 48px); }
+.spot--snooker .board__kicker { color: var(--felt); }
+.spot--draw .board__kicker { margin-bottom: 20px; }
 
-.spot__media { margin-bottom: 22px; }
+.spot__media { position: relative; margin-bottom: 22px; }
 
 .spot--winner .avatar {
   border-color: var(--gold);
@@ -350,37 +359,11 @@ main { flex: 1; padding-block: clamp(28px, 6vw, 64px); }
 .spot__title {
   margin: 0;
   font-family: var(--font-display);
-  font-size: clamp(1.8rem, 4.5vw, 2.6rem);
+  font-size: clamp(2rem, 5vw, 3rem);
   font-weight: 700;
-  line-height: 1.1;
+  line-height: 1.05;
 }
 .spot__name { margin: 10px 0 0; font-size: 1.15rem; font-weight: 900; }
-
-/* extra top room so the corner match tag clears the avatar and crown */
-.board { padding-top: 72px; }
-
-/* Match tag (Card / Snooker) pinned to the board's top-left corner */
-.spot > .board__head {
-  position: absolute;
-  top: 16px;
-  left: 16px;
-  margin: 0;
-}
-.board__head {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 6px 14px 6px 8px;
-  border: 1px solid var(--border);
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.75);
-}
-.board__match {
-  font-size: 0.78rem;
-  font-weight: 600;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-}
 
 .spot--draw .spot__title { margin-bottom: 20px; }
 .board__note { margin: 0; color: var(--ink-muted); }
@@ -411,11 +394,12 @@ main { flex: 1; padding-block: clamp(28px, 6vw, 64px); }
   overflow-wrap: anywhere;
 }
 
+/* a short centred rule above the proteins */
 .board__losers {
   width: 100%;
-  margin-top: 26px;
-  padding-top: 20px;
-  border-top: 1px solid var(--border-soft);
+  margin-top: 28px;
+  padding-top: 22px;
+  background: linear-gradient(var(--border), var(--border)) top center / 40% 1px no-repeat;
 }
 .board__label {
   margin: 0 0 14px;
@@ -484,33 +468,15 @@ main { flex: 1; padding-block: clamp(28px, 6vw, 64px); }
 
 .fixture-grid { display: grid; gap: 20px; }
 
-.fixture-card {
-  position: relative;
-  background: var(--surface);
-  -webkit-backdrop-filter: var(--glass-blur);
-  backdrop-filter: var(--glass-blur);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  box-shadow: var(--shadow), inset 0 1px 0 rgba(255, 255, 255, 0.6);
-  overflow: hidden;
-}
-.fixture-card::before {
-  content: "";
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 3px;
-  background: linear-gradient(90deg, var(--accent), var(--accent-dark) 60%, transparent);
-}
-.fixture-card--snooker::before { background: linear-gradient(90deg, #1c8a54, var(--felt) 60%, transparent); }
+/* A ruled list opened by a heavy rule, newspaper-column style. Head, result line and cells share
+   8px of side padding, so row tints reach just past the text but stay within the rule. */
+.fixture-card { border-top: 2px solid var(--rule); }
 
 .fixture-card__head {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 16px 20px 14px;
-  border-bottom: 1px solid var(--border-soft);
+  padding: 14px 8px 12px;
 }
 /* same-size slot for the card / ball icon so both titles start at the same x and centre on the icon */
 .fixture-card__icon {
@@ -523,13 +489,8 @@ main { flex: 1; padding-block: clamp(28px, 6vw, 64px); }
 .fixture-card__title { margin: 0; font-family: var(--font-display); font-size: 1.25rem; font-weight: 700; line-height: 1; }
 .fixture-card__count {
   margin-left: auto;
-  padding: 3px 10px;
-  border: 1px solid var(--border);
-  border-radius: 999px;
-  font-size: 0.7rem;
-  font-weight: 600;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+  font-size: 0.82rem;
+  font-weight: 500;
   color: var(--ink-muted);
   white-space: nowrap;
 }
@@ -539,24 +500,13 @@ main { flex: 1; padding-block: clamp(28px, 6vw, 64px); }
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 8px;
-  padding: 12px 20px;
-  border-bottom: 1px solid var(--border-soft);
-  background: rgba(43, 31, 28, 0.03);
+  gap: 6px 16px;
+  padding: 0 8px 12px;
 }
 
 .fixture-table { width: 100%; border-collapse: collapse; }
-.fixture-table th {
-  padding: 10px 20px 6px;
-  font-size: 0.68rem;
-  font-weight: 600;
-  letter-spacing: 0.14em;
-  text-align: left;
-  text-transform: uppercase;
-  color: var(--ink-muted);
-}
 .fixture-table td {
-  padding: 12px 20px;
+  padding: 12px 8px;
   border-top: 1px solid var(--border-soft);
   vertical-align: middle;
 }
@@ -567,15 +517,16 @@ main { flex: 1; padding-block: clamp(28px, 6vw, 64px); }
 .fixture-table .col-player { width: 100%; max-width: 0; }
 .fixture-table .col-score { width: 1%; text-align: right; white-space: nowrap; }
 
+/* plain numeral, centred in the crown's footprint so names line up */
 .rank {
-  display: inline-grid;
-  place-items: center;
-  width: 28px;
-  height: 28px;
-  border: 1px solid rgba(43, 31, 28, 0.25);
-  border-radius: 50%;
-  font-size: 0.82rem;
-  font-weight: 700;
+  display: inline-block;
+  min-width: 38px;
+  font-family: var(--font-display);
+  font-size: 1.1rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+  color: var(--ink-muted);
 }
 
 /* ---- Crown / fried egg badges ------------------------------------------- */
@@ -671,46 +622,38 @@ main { flex: 1; padding-block: clamp(28px, 6vw, 64px); }
 .profile .cue { margin-top: 8px; }
 .profile__name { overflow-wrap: anywhere; }
 
-/* Quotes are Burmese: upright (no italic form), and a tall line-height so stacked
-   Myanmar vowels and medials don't clip. */
+/* Pull quote under a hanging accent mark. Quotes are Burmese: upright (no italic form), and a
+   tall line-height so stacked Myanmar vowels and medials don't clip. */
 .profile__quote {
-  position: relative;
   max-width: 36ch;
   margin: 0;
-  padding: 22px 54px;
-  background: var(--surface-soft);
-  -webkit-backdrop-filter: var(--glass-blur);
-  backdrop-filter: var(--glass-blur);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  font-size: clamp(1.05rem, 2.6vw, 1.2rem);
+  padding: 16px clamp(16px, 5vw, 40px) 8px;
+  font-family: var(--font-quote), var(--font-body);
+  font-size: clamp(1.35rem, 3.4vw, 1.65rem);
+  font-weight: 800;
   line-height: 1.9;
-  quotes: "“" "”";
 }
 .profile__quote p { margin: 0; }
-.profile__quote::before,
-.profile__quote::after {
-  position: absolute;
+.profile__quote::before {
+  content: "“";
+  display: block;
+  height: 0.5em;
+  margin-bottom: 12px;
   font-family: var(--font-display);
-  font-size: 3.4rem;
+  font-size: 4.5rem;
   font-weight: 700;
   line-height: 1;
   color: var(--accent);
 }
-.profile__quote::before { content: open-quote; top: 6px; left: 12px; }
-.profile__quote::after { content: close-quote; bottom: -16px; right: 12px; }
 .profile__quote--empty {
   padding: 0;
-  background: none;
-  border: 0;
-  -webkit-backdrop-filter: none;
-  backdrop-filter: none;
   font-size: 1rem;
+  font-weight: 400;
   font-style: italic;
+  line-height: 1.5;
   color: var(--ink-muted);
 }
-.profile__quote--empty::before,
-.profile__quote--empty::after { content: none; }
+.profile__quote--empty::before { content: none; }
 
 /* ---- History ------------------------------------------------------------ */
 
@@ -768,16 +711,13 @@ main { flex: 1; padding-block: clamp(28px, 6vw, 64px); }
 .history-search__clear:hover { text-decoration: underline; }
 .history-status { margin: -8px 0 20px; text-align: center; font-size: 0.9rem; color: var(--ink-muted); }
 
-.history-list { display: grid; gap: clamp(24px, 4vw, 36px); }
+.history-list { display: grid; gap: clamp(40px, 6vw, 64px); }
 
+/* A timeline entry: date above its fixtures on phones, a sticky date column beside them on
+   wider screens (see Responsive). Days are split by a hairline, not boxed. */
 .day-card {
-  padding: clamp(16px, 3vw, 28px);
-  background: var(--surface-soft);
-  -webkit-backdrop-filter: var(--glass-blur);
-  backdrop-filter: var(--glass-blur);
-  border: 1px solid var(--border);
-  border-radius: 24px;
-  box-shadow: var(--shadow);
+  padding-top: clamp(20px, 3vw, 28px);
+  border-top: 1px solid var(--border);
 }
 
 /* date, "Latest" badge and the view link sized to share one row down to 360px; below that the link wraps */
@@ -788,8 +728,6 @@ main { flex: 1; padding-block: clamp(28px, 6vw, 64px); }
   justify-content: space-between;
   gap: 12px;
   margin-bottom: 20px;
-  padding-bottom: 18px;
-  border-bottom: 1px solid var(--border-soft);
 }
 .day-card__head .link-more { flex: none; white-space: nowrap; }
 .day-card__date {
@@ -843,15 +781,10 @@ main { flex: 1; padding-block: clamp(28px, 6vw, 64px); }
   align-items: center;
   gap: 8px;
   max-width: 100%;
-  padding: 4px 8px 4px 4px;
-  border: 1px solid var(--border);
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.7);
-  font-size: 0.82rem;
+  font-size: 0.85rem;
   font-weight: 600;
 }
 .result-chip__name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.result-chip--winner { border-color: rgba(212, 169, 59, 0.6); }
 .result-chip--winner .avatar { border-color: var(--gold); }
 
 /* Pager: fixed 5 match days per page */
@@ -983,11 +916,40 @@ main { flex: 1; padding-block: clamp(28px, 6vw, 64px); }
 
 @media (min-width: 768px) {
   .spotlight { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .fixture-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .spot + .spot {
+    margin-top: 0;
+    padding-top: 0;
+    border-top: 0;
+    border-left: 1px solid var(--border);
+  }
+  .fixture-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 40px; }
 
   /* only one match that day: a single column */
   .spotlight--single,
   .fixture-grid--single { grid-template-columns: minmax(0, 1fr); }
+
+  /* History timeline: the date column sticks below the 64px header while its fixtures scroll by,
+     which leaves room for one fixture list per row */
+  .day-card {
+    display: grid;
+    grid-template-columns: 190px minmax(0, 1fr);
+    align-items: start;
+    gap: 32px;
+    padding-top: 0;
+    border-top: 0;
+  }
+  /* the date column gets the same heavy rule as the fixture beside it, so the two line up */
+  .day-card__head {
+    position: sticky;
+    top: 88px;
+    flex-direction: column;
+    align-items: flex-start;
+    margin: 0;
+    padding-top: 12px;
+    border-top: 2px solid var(--rule);
+  }
+  .day-card__date { font-size: 1.75rem; }
+  .day-card .fixture-grid { grid-template-columns: minmax(0, 1fr); gap: 28px; }
 }
 
 /* Phones */
@@ -998,20 +960,13 @@ main { flex: 1; padding-block: clamp(28px, 6vw, 64px); }
   .nav__link { padding-inline: 10px; font-size: 0.9rem; }
   .nav__link.is-active::after { left: 10px; right: 10px; }
 
-  .spot { padding: 24px 16px; border-radius: 20px; }
-  .board { padding-top: 64px; }
-  .spot > .board__head { top: 12px; left: 12px; }
   .spot__media { margin-bottom: 16px; }
 
-  .day-card { border-radius: 18px; }
   .day-card__head { gap: 8px; }
   .day-card__head .link-more { font-size: 0.8rem; }
 
-  .fixture-card__head { padding: 14px; }
-  .result-strip { padding-inline: 14px; }
-  .fixture-table th,
-  .fixture-table td { padding-inline: 12px; }
   .fixture-table td { padding-block: 10px; }
+  .rank { min-width: 32px; }
   .player { gap: 10px; }
   .avatar--md { width: 40px; height: 40px; font-size: 0.8rem; }
 
@@ -1020,10 +975,6 @@ main { flex: 1; padding-block: clamp(28px, 6vw, 64px); }
   .icon--rank.icon--crown { width: 32px; height: 20px; }
 
   .pager__step { padding-inline: 10px; }
-
-  .profile__quote { padding: 18px 44px; }
-  .profile__quote::before,
-  .profile__quote::after { font-size: 2.8rem; }
 
   .install-banner { display: flex; }
 
@@ -1035,9 +986,8 @@ main { flex: 1; padding-block: clamp(28px, 6vw, 64px); }
 @media (max-width: 360px) {
   .day-card__date { font-size: 1.3rem; }
   .fixture-card__count { display: none; }
-  .fixture-table th,
-  .fixture-table td { padding-inline: 8px; }
+  .fixture-table td { padding-inline: 6px; }
   .avatar--md { width: 34px; height: 34px; }
-  .rank { width: 24px; height: 24px; font-size: 0.75rem; }
+  .rank { font-size: 1rem; }
   .icon--rank { width: 26px; height: 26px; }
 }

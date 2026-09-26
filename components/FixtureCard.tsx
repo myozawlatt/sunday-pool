@@ -45,7 +45,7 @@ export function FixtureCard({
       </header>
       {showResult && <ResultStrip result={result} players={players} eager={eager} />}
       <table className="fixture-table">
-        <thead>
+        <thead className="visually-hidden">
           <tr>
             <th className="col-rank" scope="col">#</th>
             <th className="col-player" scope="col">Player</th>

@@ -17,7 +17,7 @@ export function DayCard({
   return (
     <section className="day-card" aria-labelledby={`day-${day.date}`}>
       <header className="day-card__head">
-        <div>
+        <div className="day-card__when">
           <h2 className="day-card__date" id={`day-${day.date}`}>
             {formatDate(day.date)}
             {latest && <span className="pill day-card__latest">Latest</span>}
