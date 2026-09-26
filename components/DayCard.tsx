@@ -3,13 +3,17 @@ import { FixtureGrid } from './FixtureCard';
 import { formatDate, weekday } from '@/lib/format';
 import type { MatchDay, PlayerMap } from '@/lib/types';
 
-/** `eager` skips lazy-loading for the first card, whose avatars are above the fold. */
+/**
+ * `eager` skips lazy-loading for the first card, whose avatars are above the fold.
+ * `highlightId` marks that player's rows (profile history).
+ */
 export function DayCard({
   day,
   players,
   latest = false,
   eager = false,
-}: { day: MatchDay; players: PlayerMap; latest?: boolean; eager?: boolean }) {
+  highlightId,
+}: { day: MatchDay; players: PlayerMap; latest?: boolean; eager?: boolean; highlightId?: string }) {
   return (
     <section className="day-card" aria-labelledby={`day-${day.date}`}>
       <header className="day-card__head">
@@ -28,7 +32,7 @@ export function DayCard({
           VIEW MATCH
         </Link>
       </header>
-      <FixtureGrid day={day} players={players} showResults eager={eager} />
+      <FixtureGrid day={day} players={players} showResults eager={eager} highlightId={highlightId} />
     </section>
   );
 }

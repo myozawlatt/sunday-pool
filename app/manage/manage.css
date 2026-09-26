@@ -217,10 +217,16 @@ input[type="file"].input { padding: 6px; }
   border-radius: 14px;
 }
 .player-row__form { display: flex; flex: 1; flex-wrap: wrap; align-items: center; gap: 8px; min-width: 220px; }
-.player-row__form .input:not([type="file"]) { flex: 1; min-width: 140px; }
+.player-row__form .input--name,
+.player-row__form .input--handle { flex: 1; min-width: 140px; }
 .player-row__form input[type="file"] { flex: 1; min-width: 160px; font-size: 0.8rem; }
 .player-add { display: flex; flex-wrap: wrap; gap: 8px; }
-.player-add .input:not([type="file"]) { flex: 1; min-width: 160px; }
+.player-add .input--name,
+.player-add .input--handle { flex: 1; min-width: 160px; }
+/* quotes are Burmese: room for stacked glyphs */
+.input--quote { flex-basis: 100%; min-height: 0; line-height: 1.8; resize: vertical; }
+.player-row__profile { font-size: 0.85rem; font-weight: 600; color: var(--accent); text-decoration: none; white-space: nowrap; }
+.player-row__profile:hover { text-decoration: underline; }
 
 @media (max-width: 600px) {
   .manage-tag,
@@ -236,12 +242,15 @@ input[type="file"].input { padding: 6px; }
     gap: 8px 10px;
   }
   .player-row__form { display: contents; }
-  .player-row .avatar { grid-area: 1 / 1 / 3 / 2; }
+  .player-row .avatar { grid-area: 1 / 1 / 4 / 2; align-self: start; }
   /* the base flex rules leave a min-width behind, which grid still honours */
-  .player-row__form .input:not([type="file"]) { grid-area: 1 / 2 / 2 / -1; min-width: 0; }
-  .player-row__form input[type="file"] { grid-area: 2 / 2 / 3 / 3; min-width: 0; }
-  .player-row__form .btn { grid-area: 2 / 3 / 3 / 4; }
-  .player-row__delete { grid-area: 2 / 4 / 3 / -1; }
+  .player-row__form .input--name { grid-area: 1 / 2 / 2 / -1; min-width: 0; }
+  .player-row__form .input--handle { grid-area: 2 / 2 / 3 / -1; min-width: 0; }
+  .player-row__form .input--quote { grid-area: 3 / 2 / 4 / -1; min-width: 0; }
+  .player-row__form input[type="file"] { grid-area: 4 / 2 / 5 / 3; min-width: 0; }
+  .player-row__form .btn { grid-area: 4 / 3 / 5 / 4; }
+  .player-row__delete { grid-area: 4 / 4 / 5 / -1; }
+  .player-row__profile,
   .player-row > p { grid-column: 1 / -1; }
 }
 
@@ -249,8 +258,10 @@ input[type="file"].input { padding: 6px; }
 @media (max-width: 360px) {
   .player-row { grid-template-columns: auto minmax(0, 1fr) minmax(0, 1fr); }
   .player-row .avatar { grid-area: 1 / 1 / 2 / 2; }
-  .player-row__form input[type="file"] { grid-area: 2 / 1 / 3 / -1; }
-  .player-row__form .btn { grid-area: 3 / 1 / 4 / 3; }
-  .player-row__delete { grid-area: 3 / 3 / 4 / -1; }
+  .player-row__form .input--handle { grid-area: 2 / 1 / 3 / -1; }
+  .player-row__form .input--quote { grid-area: 3 / 1 / 4 / -1; }
+  .player-row__form input[type="file"] { grid-area: 4 / 1 / 5 / -1; }
+  .player-row__form .btn { grid-area: 5 / 1 / 6 / 3; }
+  .player-row__delete { grid-area: 5 / 3 / 6 / -1; }
   .player-row__delete .btn { width: 100%; }
 }

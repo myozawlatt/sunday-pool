@@ -6,6 +6,7 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 import { requireAdmin } from '@/lib/auth';
 import { validateDayPayload, type DayPayload } from '@/lib/day-form';
 import { AVATAR_BUCKET, isSupabaseConfigured } from '@/lib/env';
+import { QUOTE_MAX, readHandle, readQuote } from '@/lib/player-form';
 import { DAYS_TAG, PLAYERS_TAG } from '@/lib/queries';
 import { createServerSupabase } from '@/lib/supabase/server';
 
@@ -22,6 +23,7 @@ function refreshPublicPages() {
   // Paths additionally clear the client router cache so a navigation shows the change at once.
   revalidatePath('/');
   revalidatePath('/history');
+  revalidatePath('/player/[handle]', 'page');
 }
 
 // ---- Auth ----------------------------------------------------------------------
@@ -113,13 +115,28 @@ function readName(formData: FormData) {
   return name.length >= 1 && name.length <= 60 ? name : null;
 }
 
-export async function addPlayer(_prev: ActionState, formData: FormData): Promise<ActionState> {
-  const { supabase } = await requireAdmin();
+/** Name, handle and quote from a player form, or the first problem with them. */
+function readProfile(formData: FormData) {
   const name = readName(formData);
   if (!name) return { error: 'Enter a name (up to 60 characters).' };
+  const handle = readHandle(formData.get('handle'));
+  if (!handle) return { error: 'Enter a handle: up to 30 lowercase letters, numbers and hyphens (not at the ends).' };
+  const quote = readQuote(formData.get('quote'));
+  if (quote === undefined) return { error: `The quote is too long (${QUOTE_MAX} characters max).` };
+  return { fields: { name, handle, personal_quote: quote } };
+}
 
-  const { data, error } = await supabase.from('players').insert({ name }).select('id').single();
-  if (error) return { error: error.message };
+const playerError = (error: { code?: string; message: string }) =>
+  error.code === '23505' ? 'That handle is already taken.' : error.message;
+
+export async function addPlayer(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  const { supabase } = await requireAdmin();
+  const profile = readProfile(formData);
+  if (!profile.fields) return { error: profile.error };
+  const { name } = profile.fields;
+
+  const { data, error } = await supabase.from('players').insert(profile.fields).select('id').single();
+  if (error) return { error: playerError(error) };
 
   const upload = await uploadPhoto(supabase, data.id, formData.get('photo'));
   if (upload.error) return { error: `${name} was added, but ${upload.error.charAt(0).toLowerCase()}${upload.error.slice(1)}` };
@@ -133,8 +150,8 @@ export async function addPlayer(_prev: ActionState, formData: FormData): Promise
 export async function updatePlayer(_prev: ActionState, formData: FormData): Promise<ActionState> {
   const { supabase } = await requireAdmin();
   const id = String(formData.get('id'));
-  const name = readName(formData);
-  if (!name) return { error: 'Enter a name (up to 60 characters).' };
+  const profile = readProfile(formData);
+  if (!profile.fields) return { error: profile.error };
 
   const { data: current, error: readError } = await supabase.from('players').select('avatar_path').eq('id', id).single();
   if (readError) return { error: readError.message };
@@ -142,9 +159,12 @@ export async function updatePlayer(_prev: ActionState, formData: FormData): Prom
   const upload = await uploadPhoto(supabase, id, formData.get('photo'));
   if (upload.error) return { error: upload.error };
 
-  const changes = upload.path ? { name, avatar_path: upload.path } : { name };
+  const changes = upload.path ? { ...profile.fields, avatar_path: upload.path } : profile.fields;
   const { error } = await supabase.from('players').update(changes).eq('id', id);
-  if (error) return { error: error.message };
+  if (error) {
+    await removePhoto(supabase, upload.path ?? null); // e.g. a taken handle: don't orphan the new upload
+    return { error: playerError(error) };
+  }
   if (upload.path) await removePhoto(supabase, current.avatar_path);
 
   refreshPublicPages();

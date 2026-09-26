@@ -29,6 +29,7 @@ Without Supabase settings, the public pages show the sample data in `lib/sample-
 
 1. Create a project at [supabase.com](https://supabase.com).
 2. **SQL Editor:** paste and run `supabase/schema.sql`. It creates the tables, security rules, the save function and the `avatars` photo bucket.
+   **Already set up before player profiles?** Run `supabase/migrations/2026-09-26-player-profile.sql` once instead. It adds `handle` and `personal_quote` to `players` and fills in a handle for every existing player (`Alex Tan` → `alex-tan`; names that can't be turned into a handle, such as Burmese ones, get `player-` plus the start of their id). You can change handles in `/manage/players`.
 3. **Authentication → Sign In / Providers:** turn **off** "Allow new users to sign up". Then **Authentication → Users → Add user** creates your admin email and password.
    Keep sign-ups off: any signed-in user can edit data.
 4. **Project Settings → API Keys:** copy `.env.example` to `.env.local` and fill in the URL and publishable key. Add the secret key only if you want to seed.
@@ -44,4 +45,5 @@ Without Supabase settings, the public pages show the sample data in `lib/sample-
 
 ## Notes
 
+- **Player profiles:** `/player/{handle}` shows a player's photo, name, personal quote and every published match they played in. Player names in the fixture tables link to it. Set the handle and quote in `/manage/players`. Quotes can be written in Burmese; pages that contain Burmese text load Noto Sans Myanmar for it.
 - **Logo & favicon:** `public/favicon.png` is the source image. After replacing it, run `npm run icons` to regenerate `app/icon.png`, `app/apple-icon.png`, `public/logo.png` and the install icons (`public/icon-512.png`, `public/icon-maskable.png`).

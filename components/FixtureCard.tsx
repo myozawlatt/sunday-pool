@@ -1,18 +1,39 @@
+import Link from 'next/link';
 import { Avatar } from './Avatar';
 import { Badge } from './Badge';
 import { MatchIcon } from './MatchIcon';
 import { ResultStrip } from './ResultStrip';
 import { Tally } from './Tally';
-import { playerOf } from '@/lib/players';
+import { playerOf, profileHref } from '@/lib/players';
 import { computeResult } from '@/lib/results';
-import { matchTitle, type Match, type MatchDay, type PlayerMap } from '@/lib/types';
+import { matchTitle, type Match, type MatchDay, type Player, type PlayerMap } from '@/lib/types';
 
+/** Avatar + name, linked to the player's profile when they have one. */
+function PlayerCell({ player, eager }: { player: Player; eager: boolean }) {
+  const content = (
+    <>
+      <Avatar player={player} eager={eager} />
+      <span className="player__name">{player.name}</span>
+    </>
+  );
+  const href = profileHref(player);
+  return href ? (
+    <Link className="player player--link" href={href}>
+      {content}
+    </Link>
+  ) : (
+    <div className="player">{content}</div>
+  );
+}
+
+/** `highlightId` marks one player's row (their own profile). */
 export function FixtureCard({
   match,
   players,
   showResult = false,
   eager = false,
-}: { match: Match; players: PlayerMap; showResult?: boolean; eager?: boolean }) {
+  highlightId,
+}: { match: Match; players: PlayerMap; showResult?: boolean; eager?: boolean; highlightId?: string }) {
   const result = computeResult(match.rows);
 
   return (
@@ -35,7 +56,7 @@ export function FixtureCard({
           {result.ranked.map((row) => {
             const player = playerOf(players, row.playerId);
             return (
-              <tr key={row.playerId}>
+              <tr key={row.playerId} className={row.playerId === highlightId ? 'is-self' : undefined}>
                 <td className="col-rank">
                   {row.playerId === result.winnerId ? (
                     <Badge kind="crown" variant="rank" label="Winner" />
@@ -44,10 +65,7 @@ export function FixtureCard({
                   )}
                 </td>
                 <td className="col-player">
-                  <div className="player">
-                    <Avatar player={player} eager={eager} />
-                    <span className="player__name">{player.name}</span>
-                  </div>
+                  <PlayerCell player={player} eager={eager} />
                 </td>
                 <td className="col-score">
                   <Tally score={row.score} />
@@ -66,11 +84,19 @@ export function FixtureGrid({
   players,
   showResults = false,
   eager = false,
-}: { day: MatchDay; players: PlayerMap; showResults?: boolean; eager?: boolean }) {
+  highlightId,
+}: { day: MatchDay; players: PlayerMap; showResults?: boolean; eager?: boolean; highlightId?: string }) {
   return (
     <div className={`fixture-grid${day.matches.length === 1 ? ' fixture-grid--single' : ''}`}>
       {day.matches.map((match) => (
-        <FixtureCard key={match.type} match={match} players={players} showResult={showResults} eager={eager} />
+        <FixtureCard
+          key={match.type}
+          match={match}
+          players={players}
+          showResult={showResults}
+          eager={eager}
+          highlightId={highlightId}
+        />
       ))}
     </div>
   );

@@ -14,6 +14,8 @@ export interface PlayerRow {
   id: string;
   name: string;
   avatar_path: string | null;
+  handle: string;
+  personal_quote: string | null;
 }
 
 interface DayRow {
@@ -32,7 +34,15 @@ export function avatarUrl(path: string | null) {
   return `${SUPABASE_URL}/storage/v1/object/public/${AVATAR_BUCKET}/${path}`;
 }
 
-export const mapPlayer = (row: PlayerRow): Player => ({ id: row.id, name: row.name, avatarUrl: avatarUrl(row.avatar_path) });
+export const PLAYER_SELECT = 'id, name, avatar_path, handle, personal_quote';
+
+export const mapPlayer = (row: PlayerRow): Player => ({
+  id: row.id,
+  name: row.name,
+  avatarUrl: avatarUrl(row.avatar_path),
+  handle: row.handle,
+  quote: row.personal_quote,
+});
 
 export function mapDay(row: DayRow): MatchDay {
   const matches = MATCH_TYPES.flatMap(({ type }) => {
@@ -49,7 +59,7 @@ const isIsoDate = (value: string) => /^\d{4}-\d{2}-\d{2}$/.test(value);
 // ---- Shared queries (public client here, cookie client in /manage) --------
 
 export async function fetchPlayers(supabase: SupabaseClient): Promise<Player[]> {
-  const { data, error } = await supabase.from('players').select('id, name, avatar_path').order('name');
+  const { data, error } = await supabase.from('players').select(PLAYER_SELECT).order('name');
   if (error) throw error;
   return (data as PlayerRow[]).map(mapPlayer);
 }
@@ -78,14 +88,25 @@ export async function fetchDays(
  * One page of days plus the total row count for the same filters, in a SINGLE request:
  * PostgREST returns the total in Content-Range when a count is asked for, so there is no
  * need for a separate head-count round trip.
+ *
+ * `playerId` keeps only days that player scored in. It filters through a second, aliased
+ * inner embed (`played`), so the regular `matches` embed still carries every player's scores.
  */
 export async function fetchDaysWithCount(
   supabase: SupabaseClient,
-  { status, before, limit, offset = 0 }: { status?: DayStatus; before?: string; limit: number; offset?: number },
+  {
+    status,
+    before,
+    playerId,
+    limit,
+    offset = 0,
+  }: { status?: DayStatus; before?: string; playerId?: string; limit: number; offset?: number },
 ): Promise<{ days: MatchDay[]; total: number }> {
-  let query = supabase.from('match_days').select(DAY_SELECT, { count: 'exact' }).order('date', { ascending: false });
+  const select = playerId ? `${DAY_SELECT}, played:matches!inner(scores!inner(player_id))` : DAY_SELECT;
+  let query = supabase.from('match_days').select(select, { count: 'exact' }).order('date', { ascending: false });
   if (status) query = query.eq('status', status);
   if (before) query = query.lte('date', before);
+  if (playerId) query = query.eq('played.scores.player_id', playerId);
   const { data, count, error } = await query.range(offset, offset + limit - 1);
   if (error) throw error;
   return { days: ((data ?? []) as unknown as DayRow[]).map(mapDay), total: count ?? 0 };
@@ -94,17 +115,23 @@ export async function fetchDaysWithCount(
 /** Rows + total for `page`, re-fetching only when the requested page turned out to be out of range. */
 async function pageOfDays(
   supabase: SupabaseClient,
-  { status, before, page, pageSize }: { status?: DayStatus; before?: string; page: number; pageSize: number },
+  {
+    status,
+    before,
+    playerId,
+    page,
+    pageSize,
+  }: { status?: DayStatus; before?: string; playerId?: string; page: number; pageSize: number },
 ): Promise<DaysPage> {
   const requested = Number.isInteger(page) && page >= 1 ? page : 1;
-  const first = await fetchDaysWithCount(supabase, { status, before, limit: pageSize, offset: (requested - 1) * pageSize });
+  const first = await fetchDaysWithCount(supabase, { status, before, playerId, limit: pageSize, offset: (requested - 1) * pageSize });
   const { total } = first;
   const current = clampPage(requested, total, pageSize);
 
   const days =
     current === requested
       ? first.days
-      : (await fetchDaysWithCount(supabase, { status, before, limit: pageSize, offset: (current - 1) * pageSize })).days;
+      : (await fetchDaysWithCount(supabase, { status, before, playerId, limit: pageSize, offset: (current - 1) * pageSize })).days;
 
   return { days, total, page: current, pageCount: pageCount(total, pageSize) };
 }
@@ -151,6 +178,12 @@ export const getPlayers = cache(async (): Promise<PlayerMap> => {
   const players = isSupabaseConfigured ? await loadPlayers() : samplePlayers;
   return toPlayerMap(players);
 });
+
+/** Looked up in the cached player list, so a profile costs no extra query. */
+export async function getPlayerByHandle(handle: string): Promise<Player | null> {
+  const wanted = handle.toLowerCase();
+  return Object.values(await getPlayers()).find((player) => player.handle === wanted) ?? null;
+}
 
 const loadPublishedDays = unstable_cache(
   async (limit: number): Promise<MatchDay[]> => fetchDays(getPublicClient(), { status: 'published', limit }),
@@ -212,4 +245,25 @@ export async function getPublishedDaysPage({ from, page }: { from?: string; page
   }
 
   return loadPublishedDaysPage(before ?? null, page);
+}
+
+const loadPlayerDaysPage = unstable_cache(
+  async (playerId: string, page: number): Promise<DaysPage> =>
+    pageOfDays(getPublicClient(), { status: 'published', playerId, page, pageSize: PAGE_SIZE }),
+  ['player-days-page'],
+  { tags: [DAYS_TAG], revalidate: CACHE_SECONDS },
+);
+
+/** Profile history: published days the player scored in, newest first, 5 per page. */
+export async function getPlayerDaysPage({ playerId, page }: { playerId: string; page: number }): Promise<DaysPage> {
+  if (!isSupabaseConfigured) {
+    const all = sampleDays
+      .filter((day) => day.status === 'published' && day.matches.some((m) => m.rows.some((r) => r.playerId === playerId)))
+      .sort(byDateDesc);
+    const current = clampPage(page, all.length);
+    const start = (current - 1) * PAGE_SIZE;
+    return { days: all.slice(start, start + PAGE_SIZE), total: all.length, page: current, pageCount: pageCount(all.length) };
+  }
+
+  return loadPlayerDaysPage(playerId, page);
 }

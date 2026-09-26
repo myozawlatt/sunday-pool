@@ -10,6 +10,8 @@ create table public.players (
   id          uuid primary key default gen_random_uuid(),
   name        text not null check (char_length(btrim(name)) between 1 and 60),
   avatar_path text,                       -- storage path in the "avatars" bucket, or a full URL
+  handle      text not null unique check (handle ~ '^[a-z0-9](?:[a-z0-9-]{0,28}[a-z0-9])?$'),  -- /player/{handle}
+  personal_quote text check (personal_quote is null or char_length(personal_quote) between 1 and 280),
   created_at  timestamptz not null default now()
 );
 

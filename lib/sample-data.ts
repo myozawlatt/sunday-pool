@@ -4,16 +4,17 @@ import type { MatchDay, Player } from './types';
  * Sample data — shown when Supabase isn't configured, and used by `npm run seed`.
  * Covers every result case: single winner, draw with losers, draw for all, multiple losers,
  * single-match days, dense ranks (1,1,2,3,4,4) and a draft day that must stay hidden.
+ * Quotes are Burmese; two players have none, to show "No quote." on their profiles.
  */
 export const samplePlayers: Player[] = [
-  { id: 'p1', name: 'Alex Tan', avatarUrl: 'https://i.pravatar.cc/300?img=11' },
-  { id: 'p2', name: 'Jordan Lim', avatarUrl: 'https://i.pravatar.cc/300?img=12' },
-  { id: 'p3', name: 'Sam Wong', avatarUrl: 'https://i.pravatar.cc/300?img=13' },
-  { id: 'p4', name: 'Casey Koh', avatarUrl: 'https://i.pravatar.cc/300?img=14' },
-  { id: 'p5', name: 'Riley Ng', avatarUrl: 'https://i.pravatar.cc/300?img=15' },
-  { id: 'p6', name: 'Morgan Teo', avatarUrl: 'https://i.pravatar.cc/300?img=33' },
-  { id: 'p7', name: 'Jamie Chua', avatarUrl: 'https://i.pravatar.cc/300?img=47' },
-  { id: 'p8', name: 'Taylor Goh', avatarUrl: 'https://i.pravatar.cc/300?img=52' },
+  { id: 'p1', name: 'Alex Tan', avatarUrl: 'https://i.pravatar.cc/300?img=11', handle: 'alex-tan', quote: 'ကြိုးစားရင် အောင်မြင်မယ်။' },
+  { id: 'p2', name: 'Jordan Lim', avatarUrl: 'https://i.pravatar.cc/300?img=12', handle: 'jordan-lim', quote: 'အရှုံးဆိုတာ အောင်ခြင်းရဲ့ မိခင်ပါ။' },
+  { id: 'p3', name: 'Sam Wong', avatarUrl: 'https://i.pravatar.cc/300?img=13', handle: 'sam-wong', quote: 'ဘောလုံးကို မျက်စိမခွာနဲ့။' },
+  { id: 'p4', name: 'Casey Koh', avatarUrl: 'https://i.pravatar.cc/300?img=14', handle: 'casey-koh', quote: null },
+  { id: 'p5', name: 'Riley Ng', avatarUrl: 'https://i.pravatar.cc/300?img=15', handle: 'riley-ng', quote: 'ပျော်ရင် ပြီးတာပဲ။' },
+  { id: 'p6', name: 'Morgan Teo', avatarUrl: 'https://i.pravatar.cc/300?img=33', handle: 'morgan-teo', quote: 'တနင်္ဂနွေတိုင်း ဆုဖလားအတွက်။' },
+  { id: 'p7', name: 'Jamie Chua', avatarUrl: 'https://i.pravatar.cc/300?img=47', handle: 'jamie-chua', quote: 'ဖဲချပ်တိုင်းမှာ အခွင့်အရေးရှိတယ်။' },
+  { id: 'p8', name: 'Taylor Goh', avatarUrl: 'https://i.pravatar.cc/300?img=52', handle: 'taylor-goh', quote: null },
 ];
 
 export const sampleDays: MatchDay[] = [

@@ -5,6 +5,8 @@ export interface Player {
   id: string;
   name: string;
   avatarUrl: string | null;
+  handle: string; // profile URL: /player/{handle}
+  quote: string | null;
 }
 
 export interface ScoreRow {

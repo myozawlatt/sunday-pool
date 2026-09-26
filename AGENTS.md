@@ -24,13 +24,15 @@ npm run seed       # load sample data into Supabase
 npm run icons      # regenerate icons from public/favicon.png
 ```
 
+**Always rebuild after every change:** run `npm run build` before handing work back, so `npm start` never serves stale code. Build with the real `.env.local` and **never with the Supabase vars blanked out**. `NEXT_PUBLIC_*` values are baked in at build time, so a build made that way makes `npm start` act as if Supabase isn't connected (`/manage` shows "connect Supabase"). To try the sample data, blank the vars for `npm run dev` only. On Windows, stop a running `next start` first, since it locks `.next`.
+
 ## Stack
 
 Next 16 (App Router, Turbopack) · React 19 · Supabase. Deliberately **no** Tailwind, no UI library and no date library. Styling is hand-written global CSS with BEM-ish names in `app/globals.css`; admin-only styles live in `app/manage/manage.css`.
 
 ## Layout
 
-- `app/(site)` — public: `/` (latest published day; `?date=YYYY-MM-DD` views another) and `/history`.
+- `app/(site)` — public: `/` (latest published day; `?date=YYYY-MM-DD` views another), `/history` and `/player/[handle]` (profile + the days that player played, via `fetchDaysWithCount`'s `playerId`).
 - `app/manage/(panel)` — admin behind `requireAdmin()`: day setup and players.
 - `proxy.ts` — middleware scoped to `/manage/:path*` only; public routes run no middleware.
 - Everything is a server component except `Avatar`, `SiteHeader`, `InstallBanner` and `DownloadResults`.
@@ -48,6 +50,8 @@ Winner / draw / protein logic lives in `lib/results.ts`, is spelled out in `READ
 ## Conventions
 
 - **Dates** are `YYYY-MM-DD` strings parsed in **UTC** (`lib/format.ts`), so the day never shifts with the viewer's timezone. Keep it that way.
+- **Handles** (`players.handle`, required, unique) are the profile URL. `lib/player-form.ts` checks them with the same regex as the DB constraint; keep the two in sync. Live projects created before profiles need `supabase/migrations/2026-09-26-player-profile.sql`.
+- **Player quotes are Burmese.** They are stored NFC-normalised. Noto Sans Myanmar comes after Inter in both font stacks and is fetched only when Burmese glyphs appear (unicode-range, `preload: false`). Burmese text needs a line-height of about 1.8–1.9 and no italics.
 - **Avatars use plain `<img>`**, deliberately, to stay off Vercel's image-optimisation quota.
 - **`manage.css` classes such as `.btn` are not available on public pages** — it is imported by `app/manage/layout.tsx` only.
 - **Clash Grotesk loads from the Fontshare API** rather than being self-hosted: its licence forbids redistributing the font files through a public repo. Don't commit font files.

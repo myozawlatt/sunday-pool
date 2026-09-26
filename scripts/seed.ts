@@ -28,7 +28,7 @@ const playerIds = new Map<string, string>();
 for (const player of samplePlayers) {
   const { data, error } = await supabase
     .from('players')
-    .insert({ name: player.name, avatar_path: player.avatarUrl })
+    .insert({ name: player.name, avatar_path: player.avatarUrl, handle: player.handle, personal_quote: player.quote })
     .select('id')
     .single();
   if (error) throw error;
