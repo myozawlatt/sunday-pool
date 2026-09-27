@@ -17,7 +17,7 @@ The logic is in `lib/results.ts`, with tests in `lib/results.test.ts`.
 
 ## Ranking (`/ranking`)
 
-Every published Card and Snooker match counts once towards a player's **Total**. A **Win** is being the sole winner or sharing the top score. A **Crown** is being the sole winner. An **Egg** is finishing on 0 points. **Win Rate** is wins ÷ total. Players are ordered by wins, most first, and equal wins share a rank (1, 1, 2). The logic is in `lib/ranking.ts`, with tests in `lib/ranking.test.ts`.
+A score is the number of games a player won. Across every published Card and Snooker match a player took part in, **Total** is the sum of everyone's scores (the games played) and **Win** is the sum of their own score. **Win Rate** is win ÷ total. A **Crown** is a match won outright (sole top scorer). An **Egg** is a match finished on 0 points. Players are ordered by wins, most first, and equal wins share a rank (1, 1, 2). The logic is in `lib/ranking.ts`, with tests in `lib/ranking.test.ts`.
 
 ## Run locally
 
