@@ -1,15 +1,9 @@
 'use client';
 
-import { useRef, useState } from 'react';
+import { type ReactNode, useEffect, useRef, useState } from 'react';
 
-type Status = 'idle' | 'busy' | 'ready' | 'error';
-
-const LABELS: Record<Status, string> = {
-  idle: 'Download results as image',
-  busy: 'Creating image…',
-  ready: 'Save image',
-  error: 'Couldn’t create the image — tap to retry',
-};
+type Status = 'busy' | 'ready' | 'error';
+type Target = 'download' | 'facebook' | 'tiktok' | 'viber';
 
 // iOS Safari refuses to draw canvases over ~16.7M pixels
 const MAX_PIXELS = 16_000_000;
@@ -79,7 +73,7 @@ async function captureImage() {
     const color = (name: string) => tokens.getPropertyValue(name).trim();
     const { width, height } = root.getBoundingClientRect();
     const band = BRAND.top + BRAND.logo;
-    const scale = Math.min(2, Math.sqrt(MAX_PIXELS / (width * (height + band))));
+    const scale = Math.min(1, Math.sqrt(MAX_PIXELS / (width * (height + band))));
 
     // The copy renders text a touch wider than the page, so shrink-wrapped labels (the champion's name,
     // "4 players") would wrap. Mark text that sits on one line here, and keep it on one line in the copy.
@@ -106,7 +100,7 @@ async function captureImage() {
     drawBrand(ctx, { logo, width, scale, ink: color('--ink'), accent: color('--accent') });
 
     return await new Promise<Blob>((resolve, reject) =>
-      canvas.toBlob((blob) => (blob ? resolve(blob) : reject(new Error('Canvas export failed'))), 'image/png'),
+      canvas.toBlob((blob) => (blob ? resolve(blob) : reject(new Error('Canvas export failed'))), 'image/jpeg', 0.9),
     );
   } finally {
     frame.remove();
@@ -179,77 +173,268 @@ function download(file: File) {
   setTimeout(() => URL.revokeObjectURL(url), 60_000);
 }
 
-/**
- * Saves the match day (page + footer, without the menus) as a PNG, always in the desktop layout.
- * Touch devices get the share sheet (Save Image → Photos, or a chat app); everything else downloads.
- */
-export function DownloadResults({ date, label }: { date: string; label: string }) {
-  const pendingFile = useRef<File | null>(null);
-  const [status, setStatus] = useState<Status>('idle');
+/** Whether this device can hand an image to another app through the share sheet (phones, and most desktop browsers). */
+function canShareImages() {
+  return !!navigator.canShare?.({ files: [new File([], 'probe.jpg', { type: 'image/jpeg' })] });
+}
 
-  async function share(file: File, retried: boolean) {
-    try {
-      await navigator.share({ files: [file], title: `Sunday Pool · ${label}` });
-      setStatus('idle');
-    } catch (error) {
-      const name = error instanceof DOMException ? error.name : '';
-      if (name === 'AbortError') {
-        setStatus('idle'); // share sheet closed
-      } else if (name === 'NotAllowedError' && !retried) {
-        // The tap's user activation ran out while the image was made (iOS allows very little): ask for another tap
-        pendingFile.current = file;
+async function copyText(text: string) {
+  try {
+    await navigator.clipboard.writeText(text);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+async function toPng(image: Blob) {
+  const bitmap = await createImageBitmap(image);
+  const canvas = document.createElement('canvas');
+  canvas.width = bitmap.width;
+  canvas.height = bitmap.height;
+  canvas.getContext('2d')!.drawImage(bitmap, 0, 0);
+  bitmap.close();
+  return new Promise<Blob>((resolve, reject) =>
+    canvas.toBlob((blob) => (blob ? resolve(blob) : reject(new Error('PNG export failed'))), 'image/png'),
+  );
+}
+
+/** Clipboards only take PNG. The item gets a promise so the write starts inside the tap (Safari insists). */
+async function copyImage(image: Blob) {
+  try {
+    await navigator.clipboard.write([new ClipboardItem({ 'image/png': toPng(image) })]);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+const TARGETS: { id: Target; name: string }[] = [
+  { id: 'download', name: 'Download' },
+  { id: 'facebook', name: 'Facebook' },
+  { id: 'tiktok', name: 'TikTok' },
+  { id: 'viber', name: 'Viber' },
+];
+
+/**
+ * Shares the match day (page + footer, without the menus) as a JPEG, always in the desktop layout.
+ * A website can't hand an image to one particular app, so wherever the browser can share files every app
+ * opens the share sheet with the image and caption (the caption is copied too: Facebook drops pre-filled
+ * text). Elsewhere each app gets its own link, with the image on the clipboard to paste in.
+ */
+export function ShareResults({ date, label }: { date: string; label: string }) {
+  const [open, setOpen] = useState(false);
+  const [status, setStatus] = useState<Status>('busy');
+  const [sheet, setSheet] = useState(false);
+  const [note, setNote] = useState('');
+  const file = useRef<File | null>(null);
+  const capturing = useRef(false);
+  const wrapper = useRef<HTMLDivElement>(null);
+  const button = useRef<HTMLButtonElement>(null);
+
+  const pageUrl = () => `${location.origin}/?date=${date}`;
+  const caption = () => `The result have been made for ${label}\n\nWATCH OUT:\n${pageUrl()}`;
+
+  // Made as soon as the menu opens, so the file is ready by the time an app is picked: the share sheet
+  // needs the tap's user activation, which runs out while an image is being made (iOS allows very little)
+  function prepare() {
+    if (file.current || capturing.current) return;
+    capturing.current = true;
+    setStatus('busy');
+    captureImage()
+      .then((blob) => {
+        file.current = new File([blob], `sunday-pool-${date}.jpg`, { type: 'image/jpeg' });
         setStatus('ready');
-      } else {
-        download(file);
-        setStatus('idle');
-      }
+      })
+      .catch((error) => {
+        console.error('Could not create the results image', error);
+        setStatus('error');
+      })
+      .finally(() => (capturing.current = false));
+  }
+
+  function toggle() {
+    if (!open) {
+      setSheet(canShareImages());
+      prepare();
+    }
+    setOpen(!open);
+  }
+
+  useEffect(() => {
+    if (!open) return;
+    const onPointerDown = (event: PointerEvent) => {
+      if (!wrapper.current?.contains(event.target as Node)) setOpen(false);
+    };
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape') return;
+      setOpen(false);
+      button.current?.focus();
+    };
+    document.addEventListener('pointerdown', onPointerDown);
+    document.addEventListener('keydown', onKeyDown);
+    return () => {
+      document.removeEventListener('pointerdown', onPointerDown);
+      document.removeEventListener('keydown', onKeyDown);
+    };
+  }, [open]);
+
+  useEffect(() => {
+    if (!note) return;
+    const timer = setTimeout(() => setNote(''), 4000);
+    return () => clearTimeout(timer);
+  }, [note]);
+
+  function copyCaption() {
+    copyText(caption()).then((copied) => copied && setNote('Caption copied — paste it into your post'));
+  }
+
+  /** Without a share sheet: the app's own link, with the image (or for TikTok, a file) to paste in. */
+  function fallback(target: Exclude<Target, 'download'>, image: File) {
+    if (target === 'tiktok') {
+      copyCaption();
+      download(image);
+      window.open('https://www.tiktok.com/upload', '_blank', 'noopener');
+      return;
+    }
+    // Started before the app opens: the clipboard refuses writes once the page loses focus
+    copyImage(image).then((copied) => {
+      if (!copied) return copyCaption();
+      setNote(target === 'facebook' ? 'Image copied — paste it into your post' : 'Image copied — paste it into the chat');
+    });
+    // Opened straight from the tap, so popup blockers let it through. The link also brings the /api/og preview.
+    if (target === 'facebook') {
+      window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(pageUrl())}`, '_blank', 'noopener');
+    } else {
+      location.href = `viber://forward?text=${encodeURIComponent(caption())}`;
     }
   }
 
-  async function handleClick() {
-    if (pendingFile.current) {
-      const file = pendingFile.current;
-      pendingFile.current = null;
-      return share(file, true);
-    }
-    setStatus('busy');
-    try {
-      const blob = await captureImage();
-      const file = new File([blob], `sunday-pool-${date}.png`, { type: 'image/png' });
-      if (matchMedia('(pointer: coarse)').matches && navigator.canShare?.({ files: [file] })) {
-        await share(file, false);
-      } else {
-        download(file);
-        setStatus('idle');
-      }
-    } catch (error) {
-      console.error('Could not create the results image', error);
-      setStatus('error');
-    }
+  function pick(target: Target) {
+    const image = file.current;
+    setOpen(false);
+    if (!image) return;
+    if (target === 'download') return download(image);
+    if (!sheet) return fallback(target, image);
+
+    copyCaption();
+    navigator.share({ files: [image], text: caption(), title: `Sunday Pool · ${label}` }).catch((error) => {
+      if (!(error instanceof DOMException && error.name === 'AbortError')) fallback(target, image);
+    });
   }
 
   return (
-    <button
-      type="button"
-      className={`hero__download is-${status}`}
-      data-capture-exclude
-      aria-label={LABELS[status]}
-      aria-busy={status === 'busy'}
-      title={LABELS[status]}
-      disabled={status === 'busy'}
-      onClick={handleClick}
-      onPointerEnter={loadCapture}
-      onFocus={loadCapture}
-    >
-      <svg viewBox="0 0 24 24" aria-hidden="true">
-        {status === 'busy' ? (
-          <circle cx="12" cy="12" r="8" strokeDasharray="34 17" />
-        ) : status === 'ready' ? (
-          <path d="M12 15V3M8 7l4-4 4 4M8 10H6v11h12V10h-2" />
-        ) : (
-          <path d="M12 4v11M7 10l5 5 5-5M5 20h14" />
-        )}
-      </svg>
-    </button>
+    <div className="hero__share" ref={wrapper} data-capture-exclude>
+      <button
+        type="button"
+        ref={button}
+        className="hero__share-button"
+        aria-label="Share results"
+        title="Share results"
+        aria-haspopup="true"
+        aria-expanded={open}
+        aria-controls="share-menu"
+        onClick={toggle}
+        onPointerEnter={loadCapture}
+        onFocus={loadCapture}
+      >
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <circle cx="18" cy="5" r="3" />
+          <circle cx="6" cy="12" r="3" />
+          <circle cx="18" cy="19" r="3" />
+          <path d="M8.6 13.5l6.8 4M15.4 6.5l-6.8 4" />
+        </svg>
+      </button>
+
+      {open && (
+        <div className="share-menu" id="share-menu">
+          {TARGETS.map(({ id, name }) => {
+            const waiting = status !== 'ready';
+            return (
+              <button
+                key={id}
+                type="button"
+                className="share-menu__item"
+                disabled={waiting}
+                aria-busy={waiting && status === 'busy'}
+                onClick={() => pick(id)}
+              >
+                {waiting && status === 'busy' ? <Spinner /> : <TargetIcon target={id} />}
+                {name}
+              </button>
+            );
+          })}
+          {status === 'busy' && <p className="share-menu__status">Preparing image…</p>}
+          {status === 'error' && (
+            <button type="button" className="share-menu__item share-menu__item--retry" onClick={prepare}>
+              Couldn’t create the image — retry
+            </button>
+          )}
+        </div>
+      )}
+
+      <p className="hero__share-note" role="status">
+        {note}
+      </p>
+    </div>
   );
+}
+
+function Spinner() {
+  return (
+    <svg className="share-menu__icon share-menu__icon--spin" viewBox="0 0 24 24" aria-hidden="true">
+      <circle cx="12" cy="12" r="8" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeDasharray="34 17" />
+    </svg>
+  );
+}
+
+function TargetIcon({ target }: { target: Target }) {
+  const svg = (children: ReactNode) => (
+    <svg className="share-menu__icon" viewBox="0 0 24 24" aria-hidden="true">
+      {children}
+    </svg>
+  );
+  switch (target) {
+    case 'download':
+      return svg(
+        <path
+          d="M12 4v11M7 10l5 5 5-5M5 20h14"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />,
+      );
+    case 'facebook':
+      return svg(
+        <>
+          <circle cx="12" cy="12" r="10" fill="#1877f2" />
+          <path
+            d="M13.4 22v-7.2h2.4l.4-2.8h-2.8v-1.8c0-.8.2-1.4 1.4-1.4h1.5V6.3c-.3 0-1.1-.1-2.1-.1-2.1 0-3.6 1.3-3.6 3.7V12H8.2v2.8h2.4V22"
+            fill="#fff"
+          />
+        </>,
+      );
+    case 'tiktok':
+      return svg(
+        <path
+          d="M16 3c.3 2.3 1.8 3.8 4 4v3c-1.5 0-2.9-.5-4-1.3V15a6 6 0 1 1-6-6v3.1A3 3 0 1 0 13 15V3z"
+          fill="currentColor"
+        />,
+      );
+    case 'viber':
+      return svg(
+        <>
+          <path
+            d="M12 2.5c5 0 9 3.2 9 8.3s-4 8.2-9 8.2c-.8 0-1.6-.1-2.3-.3L6 21v-3.4c-2-1.5-3-3.9-3-6.8C3 5.7 7 2.5 12 2.5z"
+            fill="#7360f2"
+          />
+          <path
+            d="M9.2 7.5c.3-.3.8-.3 1 .1l.8 1.3c.2.3.1.7-.1.9l-.5.4c.4 1 1.3 1.9 2.3 2.4l.4-.5c.2-.3.6-.3.9-.1l1.3.8c.4.2.4.7.1 1l-.6.6c-.5.5-1.3.6-2 .3a8 8 0 0 1-4-4c-.3-.7-.2-1.5.3-2z"
+            fill="#fff"
+          />
+        </>,
+      );
+  }
 }

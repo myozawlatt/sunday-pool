@@ -16,6 +16,7 @@ Card & Snooker league results: a public site plus a private admin area, running 
 
 ```bash
 npm run dev        # http://localhost:3000
+npm run dev:lan    # same, also reachable from phones on the LAN (binds :: so localhost still works)
 npm run build      # production build
 npm start          # serve the production build
 npm run typecheck  # tsc --noEmit
@@ -34,8 +35,9 @@ Next 16 (App Router, Turbopack) · React 19 · Supabase. Deliberately **no** Tai
 
 - `app/(site)` — public: `/` (latest published day; `?date=YYYY-MM-DD` views another), `/history` and `/player/[handle]` (profile + the days that player played, via `fetchDaysWithCount`'s `playerId`).
 - `app/manage/(panel)` — admin behind `requireAdmin()`: day setup and players.
+- `app/api/og` — the home page's og:image (`generateMetadata` in `app/(site)/page.tsx`), so a shared `/?date=` link previews that day's results. Drawn by `next/og` (Satori: flexbox only, default font) from the same cached queries and `computeResult`.
 - `proxy.ts` — middleware scoped to `/manage/:path*` only; public routes run no middleware.
-- Everything is a server component except `Avatar`, `SiteHeader`, `InstallBanner` and `DownloadResults`.
+- Everything is a server component except `Avatar`, `SiteHeader`, `InstallBanner` and `ShareResults`.
 
 ## Data model
 
@@ -57,7 +59,7 @@ Winner / draw / protein logic lives in `lib/results.ts`, is spelled out in `READ
 - **`manage.css` classes such as `.btn` are not available on public pages** — it is imported by `app/manage/layout.tsx` only.
 - **Clash Grotesk loads from the Fontshare API** rather than being self-hosted: its licence forbids redistributing the font files through a public repo. Don't commit font files; the only exception is the OFL-licensed `public/MyanmarPaOhOne.ttf`, un-ignored in `.gitignore`.
 - **Installable without a service worker**, deliberately: Chrome only needs `app/manifest.ts` plus its 192/512 icons (`npm run icons`). `InstallBanner` captures `beforeinstallprompt` at module load, since it can fire before hydration.
-- **Results image** (`DownloadResults`, the icon in the home hero): the image is always the desktop layout, so a phone and a desktop download the same file. A page only lays itself out for its own window, so the capture re-loads the current URL into an off-screen 1100px iframe (via `srcdoc` with the scripts stripped, so the app doesn't hydrate a second time over the nodes being read). `modern-screenshot` then copies `[data-capture-root]` (the `.page` wrapper: main + footer, no menus) and skips anything marked `data-capture-exclude`. Those nodes belong to the frame's realm, so test them with `nodeType`, never `instanceof`. The copy drops `backdrop-filter`, which blurs up to its backdrop root: the copy is its own root, and on phones glass surfaces smeared the page around them (the page no longer uses glass cards, but keep the guard). The logo + "Sunday Pool" row at the top of the image is drawn onto the canvas afterwards, not captured. It can only embed what it may fetch with CORS: Supabase Storage photos and the Fontshare stylesheet (hence its `crossOrigin`) work; the seeded `i.pravatar.cc` photos fall back to initials.
+- **Results image** (`ShareResults`, the share icon in the home hero): its menu offers Download, Facebook, TikTok and Viber. A site can't hand an image to one particular app, so on any browser that can share files (`navigator.canShare`, desktop included) every app option opens the share sheet with the image and caption. The caption is also copied, since Facebook drops pre-filled text. Without file sharing (e.g. Firefox), Facebook gets its link sharer and Viber gets `viber://forward`, each with the image copied to the clipboard as PNG (clipboards take no JPEG), and TikTok gets a download plus its upload page. Both Web Share and the clipboard need HTTPS or `localhost`, so none of this works over a LAN IP. The image is made when the menu opens, so the share still runs inside the tap's user activation. It is a 1× JPEG (1100px wide) and always the desktop layout, so a phone and a desktop get the same file. A page only lays itself out for its own window, so the capture re-loads the current URL into an off-screen 1100px iframe (via `srcdoc` with the scripts stripped, so the app doesn't hydrate a second time over the nodes being read). `modern-screenshot` then copies `[data-capture-root]` (the `.page` wrapper: main + footer, no menus) and skips anything marked `data-capture-exclude`. Those nodes belong to the frame's realm, so test them with `nodeType`, never `instanceof`. The copy drops `backdrop-filter`, which blurs up to its backdrop root: the copy is its own root, and on phones glass surfaces smeared the page around them (the page no longer uses glass cards, but keep the guard). The logo + "Sunday Pool" row at the top of the image is drawn onto the canvas afterwards, not captured. It can only embed what it may fetch with CORS: Supabase Storage photos and the Fontshare stylesheet (hence its `crossOrigin`) work; the seeded `i.pravatar.cc` photos fall back to initials.
 - Comment only where the reason isn't evident from the code.
 
 ## Caching and invalidation

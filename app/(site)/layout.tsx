@@ -6,7 +6,7 @@ export default function SiteLayout({ children }: { children: ReactNode }) {
   return (
     <>
       <SiteHeader />
-      {/* Everything the results image captures (DownloadResults): the page and footer, not the menus */}
+      {/* Everything the results image captures (ShareResults): the page and footer, not the menus */}
       <div className="container page" data-capture-root>
         <main>{children}</main>
         <SiteFooter />
