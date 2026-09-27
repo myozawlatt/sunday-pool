@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "next dev",
+    "dev:lan": "next dev -H ::",
     "build": "next build",
     "start": "next start",
     "typecheck": "tsc --noEmit",
