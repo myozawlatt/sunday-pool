@@ -198,6 +198,18 @@ export async function getPublishedDays(limit: number): Promise<MatchDay[]> {
   return loadPublishedDays(limit);
 }
 
+const loadAllPublishedDays = unstable_cache(
+  async (): Promise<MatchDay[]> => fetchDays(getPublicClient(), { status: 'published' }),
+  ['all-published-days'],
+  { tags: [DAYS_TAG], revalidate: CACHE_SECONDS },
+);
+
+/** Every published day, newest first (the ranking table). */
+export async function getAllPublishedDays(): Promise<MatchDay[]> {
+  if (!isSupabaseConfigured) return sampleDays.filter((day) => day.status === 'published').sort(byDateDesc);
+  return loadAllPublishedDays();
+}
+
 const loadPublishedDayByDate = unstable_cache(
   async (date: string): Promise<MatchDay | null> =>
     (await fetchDays(getPublicClient(), { status: 'published', date }))[0] ?? null,

@@ -23,6 +23,7 @@ function refreshPublicPages() {
   // Paths additionally clear the client router cache so a navigation shows the change at once.
   revalidatePath('/');
   revalidatePath('/history');
+  revalidatePath('/ranking');
   revalidatePath('/player/[handle]', 'page');
 }
 

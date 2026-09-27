@@ -15,6 +15,10 @@ Card & Snooker league results. It's a Next.js site with a private admin area.
 
 The logic is in `lib/results.ts`, with tests in `lib/results.test.ts`.
 
+## Ranking (`/ranking`)
+
+Every published Card and Snooker match counts once towards a player's **Total**. A **Win** is being the sole winner or sharing the top score. A **Crown** is being the sole winner. An **Egg** is finishing on 0 points. **Win Rate** is wins ÷ total. Players are ordered by wins, most first, and equal wins share a rank (1, 1, 2). The logic is in `lib/ranking.ts`, with tests in `lib/ranking.test.ts`.
+
 ## Run locally
 
 ```bash

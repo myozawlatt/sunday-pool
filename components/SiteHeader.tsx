@@ -7,6 +7,7 @@ import { useEffect, useState } from 'react';
 const LINKS = [
   { href: '/', label: 'Home' },
   { href: '/history', label: 'History' },
+  { href: '/ranking', label: 'Ranking' },
 ];
 
 /** Sticky header: transparent at the top, frosted bar once the page scrolls. */

@@ -9,7 +9,7 @@ import { computeResult } from '@/lib/results';
 import { matchTitle, type Match, type MatchDay, type Player, type PlayerMap } from '@/lib/types';
 
 /** Avatar + name, linked to the player's profile when they have one. */
-function PlayerCell({ player, eager }: { player: Player; eager: boolean }) {
+export function PlayerCell({ player, eager = false }: { player: Player; eager?: boolean }) {
   const content = (
     <>
       <Avatar player={player} eager={eager} />

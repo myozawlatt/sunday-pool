@@ -875,6 +875,43 @@ main { flex: 1; padding-block: clamp(28px, 6vw, 64px); }
 .pager__step.is-disabled { opacity: 0.4; pointer-events: none; }
 .pager__gap { display: inline-flex; align-items: center; min-height: 40px; padding: 0 4px; color: var(--ink-muted); }
 
+/* ---- Ranking ------------------------------------------------------------ */
+
+/* "(Card + Snooker)" beside the big "Ranking" title */
+.page-title__sub {
+  font-family: var(--font-body);
+  font-size: 0.34em;
+  font-weight: 600;
+  letter-spacing: 0;
+  word-spacing: normal;
+  color: var(--ink-muted);
+  text-shadow: none;
+  white-space: nowrap;
+}
+
+.ranking-table { border-top: 2px solid var(--rule); }
+.ranking-table th {
+  padding: 12px 8px 10px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  text-align: left;
+  white-space: nowrap;
+  color: var(--ink-muted);
+  vertical-align: middle;
+}
+.ranking-table .col-num {
+  width: 1%;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.ranking-table th.col-num { text-align: right; }
+.ranking-table .col-rank .rank { min-width: 0; text-align: left; }
+.ranking-table__short { display: none; }
+
 /* ---- Footer ------------------------------------------------------------- */
 
 .site-footer {
@@ -1010,11 +1047,12 @@ main { flex: 1; padding-block: clamp(28px, 6vw, 64px); }
 
 /* Phones */
 @media (max-width: 600px) {
-  .nav { height: 56px; }
-  .brand { gap: 8px; font-size: 1.05rem; }
-  .brand__logo { width: 34px; height: 34px; }
-  .nav__link { padding-inline: 10px; font-size: 0.9rem; }
-  .nav__link.is-active::after { left: 10px; right: 10px; }
+  .nav { height: 56px; gap: 8px; }
+  .brand { gap: 6px; font-size: 0.95rem; }
+  .brand__logo { width: 30px; height: 30px; }
+  .nav__links { gap: 0; }
+  .nav__link { padding-inline: 7px; font-size: 0.8rem; }
+  .nav__link.is-active::after { left: 7px; right: 7px; }
 
   .spot__media { margin-bottom: 16px; }
 
@@ -1032,6 +1070,18 @@ main { flex: 1; padding-block: clamp(28px, 6vw, 64px); }
 
   .pager__step { padding-inline: 10px; }
 
+  .ranking-table th, .ranking-table td { padding-inline: 5px; }
+  .ranking-table th { letter-spacing: 0.06em; }
+  .ranking-table .avatar--md { width: 32px; height: 32px; font-size: 0.7rem; }
+  .ranking-table .player { gap: 8px; }
+  .ranking-table__long { display: none; }
+  .ranking-table__short { display: inline; }
+  .ranking-table td { font-size: 0.85rem; padding-block: 8px; }
+  .ranking-table .player__name { font-size: 0.85rem; }
+  .ranking-table .rank { font-size: 0.95rem; }
+  .ranking-table th { font-size: 0.62rem; }
+  .ranking-table .icon--chip { width: 18px; height: 18px; }
+
   .install-banner { display: flex; }
 
   .hero__share-button { width: 36px; height: 36px; }
@@ -1040,10 +1090,21 @@ main { flex: 1; padding-block: clamp(28px, 6vw, 64px); }
 
 /* Small phones */
 @media (max-width: 360px) {
+  .brand { font-size: 0.88rem; }
+  .brand__logo { width: 28px; height: 28px; }
+  .nav__link { padding-inline: 6px; font-size: 0.75rem; }
+  .nav__link.is-active::after { left: 6px; right: 6px; }
   .day-card__date { font-size: 1.3rem; }
   .fixture-card__count { display: none; }
   .fixture-table td { padding-inline: 6px; }
   .avatar--md { width: 34px; height: 34px; }
   .rank { font-size: 1rem; }
   .icon--rank { width: 26px; height: 26px; }
+  .ranking-table th, .ranking-table td { padding-inline: 3px; }
+  .ranking-table th { font-size: 0.58rem; letter-spacing: 0; }
+  .ranking-table td, .ranking-table .player__name { font-size: 0.78rem; }
+  .ranking-table .rank { font-size: 0.85rem; }
+  .ranking-table .icon--chip { width: 16px; height: 16px; }
+  .ranking-table .avatar--md { width: 26px; height: 26px; font-size: 0.6rem; }
+  .ranking-table .player { gap: 6px; }
 }

@@ -33,7 +33,7 @@ Next 16 (App Router, Turbopack) · React 19 · Supabase. Deliberately **no** Tai
 
 ## Layout
 
-- `app/(site)` — public: `/` (latest published day; `?date=YYYY-MM-DD` views another), `/history` and `/player/[handle]` (profile + the days that player played, via `fetchDaysWithCount`'s `playerId`).
+- `app/(site)` — public: `/` (latest published day; `?date=YYYY-MM-DD` views another), `/history`, `/ranking` (all-time table from `computeStandings` in `lib/ranking.ts`, over every published day) and `/player/[handle]` (profile + the days that player played, via `fetchDaysWithCount`'s `playerId`).
 - `app/manage/(panel)` — admin behind `requireAdmin()`: day setup and players.
 - `app/api/og` — the home page's og:image (`generateMetadata` in `app/(site)/page.tsx`), so a shared `/?date=` link previews that day's results. Drawn by `next/og` (Satori: flexbox only, default font) from the same cached queries and `computeResult`.
 - `proxy.ts` — middleware scoped to `/manage/:path*` only; public routes run no middleware.
